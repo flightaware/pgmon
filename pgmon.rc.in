@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# PROVIDE: pgmon
+# REQUIRE: DAEMON SSH
+# KEYWORD: shutdown
+
+#
+# Add the following line to /etc/rc.conf to enable pgmon:
+#
+# pgmon_enable="YES"
+#
+# Configuration variables and their default values:
+#
+
+. /etc/rc.subr
+
+name="pgmon"
+rcvar=`set_rcvar`
+
+command="/usr/local/bin/pgmon"
+
+# read configuration and set defaults
+load_rc_config ${name}
+
+: ${pgmon_enable:="NO"}
+: ${pgmon_config:="/usr/local/pgmon/etc/pgmon.conf"}
+: ${pgmon_pidfile:="/var/run/pgmon/pgmon.pid"}
+
+pidfile=${pgmon_pidfile}
+command_args="-c ${pgmon_config}"
+command_interpreter="##PYTHON_PATH##"
+
+
+run_rc_command "$1"
+

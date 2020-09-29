@@ -1,0 +1,5 @@
+*.pyc
+pgmon.conf
+pgmon.rc
+pgmon
+Makefile

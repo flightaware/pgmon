@@ -1,0 +1,31 @@
+#{PYTHON_PATH}
+
+import sys, os, signal
+import syslog
+from argparse import ArgumentParser
+
+sys.path.append('#{APP_LIB_PATH}')
+
+import daemon
+import pgmon
+
+APPNAME = "pgmon"
+
+if __name__ == "__main__":
+
+	opts = pgmon.setup_args()
+	pgmon.init_logging(APPNAME)
+	
+	try:
+		with pgmon.PGMon(opts.config,opts.forground) as mon:
+			try:
+				mon.run()
+			except Exception as e:
+				pgmon.log_error("Error: {exc}".format(exc=e))
+	except Exception as exc:
+		print("Fatal Error: {exc}".format(exc=exc))
+		pgmon.log_error("Error: {exc}. Terminating program.".format(exc=exc))
+	except KeyboardInterrupt:
+		print("Interrupted! Exiting")
+	finally:
+		syslog.closelog()

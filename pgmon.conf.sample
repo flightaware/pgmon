@@ -1,0 +1,70 @@
+{
+    "Config": {
+        "Pgmon": {
+            "PidFile":"/var/run/pgmon/pgmon.pid",
+            "User":"pgmon",
+            "Group":"pgmon",
+			"CheckInterval":60,
+            "Daemon":1
+        },
+        "Database": {
+            "Name":"pgdb",
+            "Type":"postgresql",
+            "Host":"localhost",
+            "Port":5432,
+            "Username":"pguser",
+            "Password":"pgpass"
+		},
+        "Destinations": [
+            {"Name":"Zabbix",
+             "Type":"application.zabbix",
+			 "Server":"zabbix-server.example.com",
+             "Host":"myhostname",
+             "Port":10051,
+			 "SenderLocation":"/usr/local/bin/zabbix_sender"
+            },
+			{"Name":"WWW",
+			 "Type":"net.http",
+			 "Location":"https://monitoring.server.com/pgmon",
+			 "Verb": "POST",
+			 "PostVariable": "pgmon"
+			}
+        ],
+        "Items": [
+            {"Query":"select sum(numbackends) as count from pg_stat_database",
+             "Destination":"WWW",
+             "Id":"postgres.process"
+            },
+            {"Query":"select pg_database_size('pgdb') as \"size[pgdb]\"",
+             "Destination":"Zabbix                                     ",
+             "Id":"postgres.db"
+            },
+            {"Query":"select sum(xact_commit) committed, sum(xact_rollback) as rollback FROM pg_stat_database",
+             "Destination":"WWW",
+             "Id":"postgres.transactions"
+            },
+            {"Query":"select sum(tup_updated) as updated, sum(tup_returned) as returned, sum(tup_inserted) as inserted, sum(tup_fetched) as fetched, sum(tup_deleted) as deleted FROM pg_stat_database",
+             "Destination":"WWW",
+             "Id":"postgres.tuples"
+            },
+            {"Query":"select count(*) as count from pg_locks where granted",
+             "Destination":"WWW",
+             "Id":"postgres.locks.granted"
+            },
+            {"Query":"select count(*) as count from pg_locks where not granted",
+             "Destination":"WWW",
+             "Id":"postgres.locks.not_granted"
+            },
+            {"Query":"select count(1) as count from pg_stat_activity where state = 'active'",
+             "Destination":"WWW",
+             "Id":"postgres.active_queries"
+            },
+            {"Query":"select client_addr, extract(epoch from replay_lag) as lag_ms from pg_stat_replication",
+             "Destination":"Zabbix",
+             "Id":"postgres.replication_delay",
+             "MultiRow": "client_addr"
+            },
+
+		]
+    }
+}

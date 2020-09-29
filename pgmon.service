@@ -1,0 +1,16 @@
+[Unit]
+Description=PostgreSQL monitoring service
+After=network.target auditd.service
+
+[Service]
+ExecStart=/usr/local/bin/pgmon -c /usr/local/pgmon/etc/pgmon.conf
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+Type=forking
+PIDFile=/var/run/pgmon/pgmon.pid
+
+[Install]
+WantedBy=multi-user.target
+Alias=pgmon.service
+

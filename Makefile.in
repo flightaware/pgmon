@@ -1,0 +1,61 @@
+#
+# Makefile for pgmon.py
+#
+
+NAME	?= pgmon
+PREFIX	?= /usr/local
+BINDIR	?= $(PREFIX)/bin
+LIBDIR	?= $(PREFIX)/$(NAME)/lib
+CNFDIR	?= $(PREFIX)/$(NAME)/etc
+RCDIR	?= $(PREFIX)/etc/rc.d
+RUNDIR	?= /var/run/$(NAME)
+TARGET	?= $(NAME)
+PGUSER	?= $(NAME)
+
+PYTHON_PATH ?= ##PYTHON_PATH##
+
+install: install-app ##INSTALL_OS## 
+	
+install-app:
+	mkdir -p $(LIBDIR)
+	mkdir -p $(CNFDIR)
+	mkdir -p $(RUNDIR)
+	sed "s|#{PYTHON_PATH}|#!$(PYTHON_PATH)|" main.py.src | sed "s|#{APP_LIB_PATH}|$(LIBDIR)|" > main.py
+
+install-bsd:
+	rsync -rq --chown=root:wheel --chmod=o=rwX --chmod=g=rwX --chmod=o=rX --exclude "*.pyc" destination $(LIBDIR)
+	rsync -rq --chown=root:wheel --chmod=o=rwX --chmod=g=rwX --chmod=o=rX --exclude "*.pyc" database $(LIBDIR)
+	install -o root -g wheel -m 644 $(TARGET).conf.sample $(CNFDIR)
+	@echo "Config file is in $(CNFDIR)"
+	install -o root -g wheel -m 755 main.py $(BINDIR)/$(TARGET)
+	install -o root -g wheel -m 644 *.py $(LIBDIR)
+	pw usershow $(PGUSER) || pw useradd $(PGUSER) -u 2059 -c "Postgres Monitor" -s /sbin/nologin
+	chown $(PGUSER) $(RUNDIR)
+	install -o root -g wheel -m 755 $(TARGET).rc $(RCDIR)/$(TARGET)
+	@echo "Don't forget to set pgmon_enable in rc.conf"
+
+install-linux:
+	rsync -rq --chown=root:root --chmod=o=rwX --chmod=g=rwX --chmod=o=rX --exclude "*.pyc" destination $(LIBDIR)
+	rsync -rq --chown=root:root --chmod=o=rwX --chmod=g=rwX --chmod=o=rX --exclude "*.pyc" database $(LIBDIR)
+	install -o root -g root -m 644 $(TARGET).conf.sample $(CNFDIR)
+	@echo "Config file is in $(CNFDIR)"
+	install -o root -g root -m 755 main.py $(BINDIR)/$(TARGET)
+	install -o root -g root -m 644 *.py $(LIBDIR)
+	useradd -u 2059 -c "Postgres Monitor" $(PGUSER) || echo "User already exists"
+	chown $(PGUSER) $(RUNDIR)
+	install -o root -g root -m 644 pgmon.service /lib/systemd/system/
+	systemctl enable pgmon.service
+
+uninstall:
+	rm -f $(BINDIR)/$(TARGET)
+	rm -f $(LIBDIR)/*.py*
+	rm -rf $(LIBDIR)
+	rm -f $(RCDIR)/$(TARGET)
+	@echo "Don't forget to remove configuration lines from rc.conf"
+
+clean:
+	find ./ -name "*.pyc" -type f -exec rm -f {} \;
+	rm -f main.py
+	rm -f Makefile
+	rm -f $(TARGET).rc
+
